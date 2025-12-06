@@ -1,0 +1,122 @@
+[
+  {
+    "id": "restaurant-1",
+    "name": "연래춘 (Yeonraechun)",
+    "category": "Chinese",
+    "score": 3.57,
+    "reviews": 26,
+    "imageSrc": "img/tn-img-01.png",
+    "pinTop": "94%",
+    "pinLeft": "93%"
+  },
+  {
+    "id": "restaurant-2",
+    "name": "완차이 (Wanchai)",
+    "category": "Chinese",
+    "score": 3.55,
+    "reviews": 73,
+    "imageSrc": "img/tn-img-02.png",
+    "pinTop": "20%",
+    "pinLeft": "80%"
+  },
+  {
+    "id": "restaurant-3",
+    "name": "풍년 (Pungnyeon)",
+    "category": "Chinese, Fusion",
+    "score": 3.34,
+    "reviews": 18,
+    "imageSrc": "img/tn-img-03.png",
+    "pinTop": "16%",
+    "pinLeft": "65%"
+  },
+  {
+    "id": "restaurant-4",
+    "name": "리춘시장 (Richunsijang)",
+    "category": "Chinese, Hot Pot",
+    "score": 3.26,
+    "reviews": 21,
+    "imageSrc": "img/tn-img-04.png",
+    "pinTop": "22%",
+    "pinLeft": "39%"
+  },
+  {
+    "id": "restaurant-5",
+    "name": "미도매운향솥 (Midomaeunhyangsot)",
+    "category": "Chinese, Hot Pot",
+    "score": 3.13,
+    "reviews": 61,
+    "imageSrc": "img/tn-img-05.png",
+    "pinTop": "17%",
+    "pinLeft": "27%"
+  },
+  {
+    "id": "restaurant-6",
+    "name": "가화만사성 (Gahwamansaseong)",
+    "category": "Chinese",
+    "score": 2.96,
+    "reviews": 29,
+    "imageSrc": "img/tn-img-06.png",
+    "pinTop": "60%",
+    "pinLeft": "35%"
+  },
+  {
+    "id": "restaurant-7",
+    "name": "복성각 (Boksunggak)",
+    "category": "Chinese",
+    "score": 2.84,
+    "reviews": 61,
+    "imageSrc": "img/tn-img-07.png",
+    "pinTop": "26%",
+    "pinLeft": "52%"
+  },
+  {
+    "id": "restaurant-8",
+    "name": "구복 (Gubok)",
+    "category": "Chinese, Dumpling",
+    "score": 2.82,
+    "reviews": 33,
+    "imageSrc": "img/tn-img-08.png",
+    "pinTop": "52%",
+    "pinLeft": "63%"
+  },
+  {
+    "id": "restaurant-9",
+    "name": "무궁화반점 (Mugunghwabanjeom)",
+    "category": "Chinese",
+    "score": 1.92,
+    "reviews": 20,
+    "imageSrc": "img/tn-img-09.png",
+    "pinTop": "83%",
+    "pinLeft": "75%"
+  },
+  {
+    "id": "restaurant-10",
+    "name": "난향 (Nanhyang)",
+    "category": "Chinese, Dumpling",
+    "score": 0.00,
+    "reviews": 9,
+    "imageSrc": "img/tn-img-10.png",
+    "pinTop": "75%",
+    "pinLeft": "7%"
+  },
+  {
+    "id": "restaurant-11",
+    "name": "대양장 (Daeyangjang)",
+    "category": "Chinese",
+    "score": 0.00,
+    "reviews": 7,
+    "imageSrc": "img/tn-img-11.png",
+    "pinTop": "43%",
+    "pinLeft": "43%"
+  },
+  {
+    "id": "restaurant-12",
+    "name": "오향미엔 (Ohyangmien)",
+    "category": "Chinese, Fusion",
+    "score": 0.00,
+    "reviews": 0,
+    "imageSrc": "img/tn-img-12.png",
+    "pinTop": "30%",
+    "pinLeft": "20%"
+  }
+]

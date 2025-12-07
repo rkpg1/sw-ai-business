@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=d939c8a1e61bfd4e5cc349ec3f2d1e81"></script>
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=d939c8a1e61bfd4e5cc349ec3f2d1e81"></script>
 
     <title>TasteHouse</title>
 <!--
@@ -135,7 +135,7 @@ https://www.tooplate.com/view/2095-level
 
                         <div class="col-sm-12 col-md-12 col-lg-8 col-xl-8 mt-4 mt-lg-0">
                             <div id="map-container" class="tm-bg-white">
-                                <img src="img/map.png" alt="Map of Sinchon" id="map-image">
+                                <div id="map" style="width:100%; height:540px;"></div>
                             </div>
 
                         </div>
@@ -188,40 +188,6 @@ https://www.tooplate.com/view/2095-level
         <script src="slick/slick.min.js"></script>                  <!-- http://kenwheeler.github.io/slick/ -->
         <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
         <script>
-
-            /* Google map
-            ------------------------------------------------*/
-            var map = '';
-            var center;
-
-            function initialize() {
-                var mapOptions = {
-                    zoom: 13,
-                    center: new google.maps.LatLng(-23.013104,-43.394365),
-                    scrollwheel: false
-                };
-
-                map = new google.maps.Map(document.getElementById('google-map'),  mapOptions);
-
-                google.maps.event.addDomListener(map, 'idle', function() {
-                  calculateCenter();
-              });
-
-                google.maps.event.addDomListener(window, 'resize', function() {
-                  map.setCenter(center);
-              });
-            }
-
-            function calculateCenter() {
-                center = map.getCenter();
-            }
-
-            function loadGoogleMap(){
-                var script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDVWt4rJfibfsEDvcuaChUaZRS5NXey1Cs&v=3.exp&sensor=false&' + 'callback=initialize';
-                document.body.appendChild(script);
-            } 
 
             function setCarousel() {
                 
@@ -280,19 +246,15 @@ https://www.tooplate.com/view/2095-level
        
             $(document).ready(function(){
 
+                /* --- 1. 기본 UI 설정 --- */
                 $(window).on("scroll", function() {
                     if($(window).scrollTop() > 100) {
                         $(".tm-top-bar").addClass("active");
                     } else {
-                        //remove the background property so it comes transparent again (defined in your css)
                        $(".tm-top-bar").removeClass("active");
                     }
                 });      
 
-                // Google Map
-                //loadGoogleMap();
-                
-                // Slick carousel
                 setCarousel();
                 setPageNav();
 
@@ -301,66 +263,68 @@ https://www.tooplate.com/view/2095-level
                   setPageNav();
                 });
 
-                // Close navbar after clicked
                 $('.nav-link').click(function(){
                     $('#mainNav').removeClass('show');
                 });
 
-                // Control video
-                $('.tm-btn-play').click(function() {
-                    togglePlayPause();                                      
-                });
+                $('.tm-btn-play').click(function() { togglePlayPause(); });
+                $('.tm-btn-pause').click(function() { togglePlayPause(); });
 
-                $('.tm-btn-pause').click(function() {
-                    togglePlayPause();                                      
-                });
-
-                // Update the current year in copyright
                 $('.tm-current-year').text(new Date().getFullYear());     
 
+                /* --- 2. 카카오 지도 띄우기 --- */
+                var mapContainer = document.getElementById('map'); // 지도를 담을 영역의 DOM 레퍼런스
+                
+                // [중요] 만약 mapContainer가 없으면 에러가 나므로 확인
+                if (mapContainer) {
+                    var mapOption = { 
+                        center: new kakao.maps.LatLng(37.5562, 126.9372),
+                        level: 3,
+                        mapTypeId : kakao.maps.MapTypeId.HYBRID
+                    };
+    
+                    var map = new kakao.maps.Map(mapContainer, mapOption); // 지도 생성
+                } else {
+                    console.error("지도를 표시할 div(id='map')를 찾을 수 없습니다.");
+                }
+
+                /* --- 3. 별점 초기화 함수 --- */
                 function initializeStarRatings() {
-                    // 모든 별점 항목을 순회
                     $('.list-item-rating').each(function() {
                         const $this = $(this);
-                        const score = $this.data('score'); // data-score="3.85"
+                        const score = $this.data('score'); 
                         
                         if (score !== undefined) {
-                            // --- 1. 리스트 별점 계산 ---
                             const percentage = (score / 5.0) * 100;
                             const $foreground = $this.find('.stars-foreground');
                             $foreground.css('width', percentage + '%');
 
-                            // --- 2. 맵 핀 찾기 ---
-                            // 현재 별점의 부모인 <a ... id="restaurant-x"> 를 찾음
                             const $listItem = $this.closest('.restaurant-item');
-                            const targetId = $listItem.attr('id'); // "restaurant-x" 값을 가져옴
+                            const targetId = $listItem.attr('id'); 
                             
-                            // data-target이 "#restaurant-x" 인 맵 핀을 찾음
-                            const $pin = $('.map-pin[data-target="#' + targetId + '"]');
+                            // const $pin = $('.map-pin[data-target="#' + targetId + '"]');
 
-                            // --- 3. 점수에 따른 색상 클래스 부여 ---
+                            // (주의) 아직 지도 위에 핀을 안 만들었으므로 핀 색상 변경 코드는 에러 방지를 위해 잠시 뺍니다.
                             if (score === 0) {
-                                $foreground.addClass('is-low-score'); // 별은 '낮은 점수' 색상 유지
-                                $pin.addClass('is-zero-score');   // 핀만 회색으로 변경
+                                $foreground.addClass('is-low-score'); 
                             } else if (score > 3.5) {
                                 $foreground.addClass('is-high-score');
-                                $pin.addClass('is-high-score'); 
                             } else {
                                 $foreground.addClass('is-low-score');
-                                // $pin 에는 클래스 추가 안함 (0점이 아닌 낮은 점수의 기본 핀 색상)
                             }
                         }
                     });
                 }
 
+                /* --- 4. 데이터 불러오기 및 리스트 생성 --- */
                 $.getJSON("restaurants.json", function(data) {
                     const $listContainer = $('#restaurant-list-container');
-                    const $mapContainer = $('#map-container');
+                    
+                    // 리스트 비우기 (중복 방지)
+                    $listContainer.empty();
 
-                    // 1. JSON 데이터 순회
                     $.each(data, function(index, restaurant) {
                         
-                        // 2. 식당 리스트 HTML 생성
                         const listHtml = `
                             <a href="#" class="media tm-media tm-recommended-item restaurant-item" id="${restaurant.id}">
                                 <img src="${restaurant.imageSrc}" alt="Image">
@@ -379,70 +343,45 @@ https://www.tooplate.com/view/2095-level
                             </a>
                         `;
                         $listContainer.append(listHtml);
-
-                        // 3. 맵 핀 HTML 생성
-                        const pinHtml = `
-                            <a href="#" class="map-pin" style="top: ${restaurant.pinTop}; left: ${restaurant.pinLeft};" data-target="#${restaurant.id}">
-                                <i class="fa fa-map-marker"></i>
-                            </a>
-                        `;
-                        $mapContainer.append(pinHtml);
                     });       
 
-                    // 기존 별점 초기화 함수 호출
                     initializeStarRatings(); 
 
-                    // 기존 맵 핀 클릭 이벤트 바인딩
-                    $('.map-pin').on('click', function(e) {
-                        e.preventDefault(); 
-                        const targetId = $(this).data('target');
-                        const $targetElement = $(targetId);
-                        const $listContainer = $('#restaurant-list-container');
-                        
-                        if ($targetElement.length) {
-                            $('.restaurant-item').removeClass('active-restaurant');
-                            $targetElement.addClass('active-restaurant');
-                            const targetScrollTop = $targetElement.position().top 
-                                                    + $listContainer.scrollTop() 
-                                                    - $listContainer.position().top - 5;
-                            $listContainer.animate({
-                                scrollTop: targetScrollTop
-                            }, 500);
-                        }
-                    });
-
+                    // 리스트 클릭 이벤트 (Fake Door)
                     $('.restaurant-item').on('click', function(e) {
-                        e.preventDefault(); // <a> 태그 기본 동작(이동) 방지
-                        
+                        e.preventDefault(); 
                         const restaurantId = $(this).attr('id');
-                        const restaurantName = $(this).find('.list-item-name').text();
-
-                        // DB로 보낼 데이터 준비
+                        
                         var finalData = JSON.stringify({
                             "id": getUVfromCookie(),
-                            "action": "click", // 식당 클릭
+                            "action": "click", 
                             "destination": restaurantId,
                             "food_type": "Chinese",
                             "time_stamp": getTimeStamp()
                         });
 
-                        $.busyLoadFull("show"); // 로딩 시작
+                        $.busyLoadFull("show"); 
 
                         axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData)
                             .then(response => {
-                                $.busyLoadFull("hide"); // 로딩 숨기기
-                                // 새 팝업 띄우기
+                                $.busyLoadFull("hide"); 
                                 $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
                             })
                             .catch(error => {
-                                console.error("Restaurant click submit failed:", error);
-                                $.busyLoadFull("hide"); // 실패해도 로딩 숨기기
-                                // 실패해도 사용자에게는 팝업을 띄워줌
+                                console.error("Submit failed:", error);
+                                $.busyLoadFull("hide"); 
                                 $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
                             });
                     });
 
-                }); // <-- $.getJSON 끝         
+                }); // <-- $.getJSON 끝 
+
+                /* --- 5. 검색 버튼 이벤트 --- */
+                $("#fake-door-form").on("submit", function(e) {
+                    e.preventDefault();
+                    // ... (기존 검색 코드 유지) ...
+                    $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
+                });
             });
 
         </script>

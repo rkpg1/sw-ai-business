@@ -325,7 +325,15 @@ https://www.tooplate.com/view/2095-level
                 /* --- 4. 이벤트 리스너 등록 --- */
                 
                 // (1) 지도가 움직이거나 줌인/아웃이 '끝났을 때(idle)' 실행
-                kakao.maps.event.addListener(map, 'idle', function() {
+                kakao.maps.event.addListener(map, 'dragend', function() {
+                    updateMapAndList();
+                    if (currentOverlay) {
+                        currentOverlay.close();
+                        currentOverlay = null;
+                    };
+                });
+
+                kakao.maps.event.addListener(map, 'zoom_changed', function() {
                     updateMapAndList();
                     if (currentOverlay) {
                         currentOverlay.close();
@@ -487,6 +495,16 @@ https://www.tooplate.com/view/2095-level
                         }
                     });
 
+                    $(document).on('click', function(e) {
+                        // 클릭된 요소가 지도(#map) 내부가 아니고, 식당 리스트(.restaurant-item) 내부도 아닐 때만 닫기
+                        if (!$(e.target).closest('#map').length && !$(e.target).closest('.restaurant-item').length) {
+                            if (currentOverlay) {
+                                currentOverlay.close();
+                                currentOverlay = null;
+                            }
+                        }
+                    });
+
                     markers.push(marker);
                 });
             }
@@ -584,6 +602,10 @@ https://www.tooplate.com/view/2095-level
                     
                     $btn.click(function(e) {
                         e.preventDefault();
+                        if (currentOverlay) {
+                            currentOverlay.close();
+                            currentOverlay = null;
+                        }
                         currentPage = targetPage;
                         renderCurrentPage(); // 페이지 변경 후 다시 렌더링
                     });

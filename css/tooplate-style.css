@@ -478,14 +478,14 @@ video {
 .map-pin {
     position: absolute;
     font-size: 2.5rem; /* 핀 크기 */
-    color: #ffaa00; /* 3.5점 미만 기본 색상 */
+    color: #e8ad3e; /* 3.5점 미만 기본 색상 */
     transform: translate(-50%, -100%);
     text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
     transition: all 0.2s ease;
 }
 
 .map-pin.is-high-score {
-    color: #ff5500;
+    color: #df722e;
 }
 
 .map-pin:hover {
@@ -502,7 +502,7 @@ video {
 }
 
 .map-pin.is-zero-score:hover {
-    color: #777; /* 조금 더 진한 회색 */
+    color: #808080; /* 조금 더 진한 회색 */
 }
 
 .restaurant-item img {
@@ -528,9 +528,9 @@ video {
 }
 
 .list-item-name {
-    font-size: 1.1rem; /* 약간 크게 */
-    font-weight: bold;
-    color: #000; /* 기본 검은색 */
+    font-size: 0.85rem; /* 약간 크게 */
+    font-weight: 400;
+    color: #555; /* 기본 검은색 */
 	white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -584,10 +584,10 @@ video {
 }
 
 .stars-foreground.is-high-score {
-    color: #ff5500; /* 3.5 초과 */
+    color: #df722e; /* 3.5 초과 */
 }
 .stars-foreground.is-low-score {
-    color: #ffaa00; /* 3.5 이하 */
+    color: #e8ad3e; /* 3.5 이하 */
 }
 
 .rating-reviews {

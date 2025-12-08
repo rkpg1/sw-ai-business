@@ -68,6 +68,73 @@ https://www.tooplate.com/view/2095-level
         .page-btn:focus {
             outline: none;
         }
+
+        .multiselect {
+            width: 100%;
+            position: relative;
+        }
+        .selectBox {
+            position: relative;
+            cursor: pointer;
+        }
+        .selectBox select {
+            width: 100%;
+            font-size: 0.9rem;
+            color: #555;
+            pointer-events: none; /* 클릭 이벤트를 부모 div가 받도록 함 */
+        }
+        .overSelect {
+            position: absolute;
+            left: 0; right: 0; top: 0; bottom: 0;
+        }
+        .checkboxes {
+            display: none; /* 기본적으로 숨김 */
+            border: 1px solid #ccc;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .checkboxes label {
+            display: block;
+            padding: 8px 12px;
+            margin: 0;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .multiselect-controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .control-btn {
+            border: none;
+            background: none;
+            color: #ee5057;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 0;
+            font-weight: 600;
+        }
+        .control-btn:hover {
+            text-decoration: underline;
+        }
+        .checkboxes label:hover {
+            background-color: #fce8e9; /* 테마 색상 연하게 */
+        }
+        .checkboxes input {
+            margin-right: 10px;
+            transform: scale(1.2); /* 체크박스 크기 키움 */
+            vertical-align: middle;
+        }
     </style>    
     
 </head>
@@ -153,9 +220,16 @@ https://www.tooplate.com/view/2095-level
                                     <p class="tm-color-white tm-margin-b-0 tm-font-light">Relative Score with an average of 3.0</p>
                                 </div>
                                 <div class="tm-sidebar-pad-2" style="padding-bottom: 10px;">
-                                    <select id="real-category-filter" class="form-control" style="height: 40px; font-size: 0.9rem;">
-                                        <option value="All">All Categories</option>
-                                        </select>
+                                    <div class="multiselect">
+                                        <div class="selectBox" id="category-dropdown-btn">
+                                            <select class="form-control" style="height: 40px;">
+                                                <option>All Categories</option>
+                                            </select>
+                                            <div class="overSelect"></div>
+                                        </div>
+                                        <div id="checkboxes" class="checkboxes">
+                                            </div>
+                                    </div>
                                 </div>
                                 <div class="tm-sidebar-pad-2" id="restaurant-list-container">
                                 </div>
@@ -349,8 +423,26 @@ https://www.tooplate.com/view/2095-level
                     });
 
                 // (2) 카테고리 필터를 변경했을 때 실행
-                $('#real-category-filter').on('change', function() {
-                    updateMapAndList();
+                // [수정] 커스텀 드롭다운 열기/닫기 이벤트
+                var expanded = false;
+                $('#category-dropdown-btn').on('click', function(e) {
+                    e.stopPropagation(); // 이벤트 버블링 방지
+                    var checkboxes = document.getElementById("checkboxes");
+                    if (!expanded) {
+                        checkboxes.style.display = "block";
+                        expanded = true;
+                    } else {
+                        checkboxes.style.display = "none";
+                        expanded = false;
+                    }
+                });
+
+                // [추가] 드롭다운 외부 클릭 시 닫기
+                $(document).on('click', function(e) {
+                    if (!$(e.target).closest('.multiselect').length) {
+                        document.getElementById("checkboxes").style.display = "none";
+                        expanded = false;
+                    }
                 });
 
                 /* --- 5. 검색 버튼 이벤트 --- */
@@ -368,24 +460,44 @@ https://www.tooplate.com/view/2095-level
                 if (!map) return;
 
                 var bounds = map.getBounds();
-                var selectedCategory = $('#real-category-filter').val();
+                
+                // 1. 체크된 카테고리 수집
+                var selectedCategories = [];
+                $('#checkboxes input:checked').each(function() {
+                    selectedCategories.push($(this).val());
+                });
 
-                // 1. 필터링 (영역 내 + 카테고리 일치)
+                // 드롭다운 버튼 텍스트 실시간 업데이트 로직
+                var totalCategories = $('#checkboxes input[type="checkbox"]').length; // 전체 카테고리 수
+                var buttonText = "All Categories"; // 기본값 (0개 또는 전체 선택 시)
+                
+                // 하나 이상 선택했고, 전체를 다 선택한 게 아닐 때만 목록 나열
+                if (selectedCategories.length > 0 && selectedCategories.length < totalCategories) {
+                    buttonText = selectedCategories.join(", ");
+                }
+                
+                // 버튼(<select> 안의 <option>) 텍스트 변경
+                $('#category-dropdown-btn select option').text(buttonText);
+
+
+                // 2. 필터링
                 currentFilteredRestaurants = allRestaurants.filter(function(r) {
                     var latlng = new kakao.maps.LatLng(r.lat, r.lng);
                     var isInside = bounds.contain(latlng);
-                    var isCategoryMatch = (selectedCategory === "All") || (r.category === selectedCategory);
+                    
+                    var isCategoryMatch = (selectedCategories.length === 0) || (selectedCategories.includes(r.category));
+
                     return isInside && isCategoryMatch;
                 });
 
-                // 2. 정렬 (리뷰 10개 미만은 0점 처리하여 맨 뒤로, 그 외 점수 내림차순)
+                // 3. 정렬
                 currentFilteredRestaurants.sort(function(a, b) {
                     var scoreA = (a.reviews < 10) ? 0 : a.score;
                     var scoreB = (b.reviews < 10) ? 0 : b.score;
                     return scoreB - scoreA;
                 });
 
-                // 3. 페이지 초기화 및 렌더링
+                // 4. 렌더링
                 currentPage = 1;
                 renderCurrentPage();
             }
@@ -624,11 +736,40 @@ https://www.tooplate.com/view/2095-level
                 var categories = new Set();
                 allRestaurants.forEach(r => categories.add(r.category));
                 
-                var $select = $('#real-category-filter');
+                var $container = $('#checkboxes');
+                $container.empty();
+
+                // 1. 전체 선택/해제 버튼 추가
+                var $controls = $(`
+                    <div class="multiselect-controls">
+                        <button type="button" id="check-all-btn" class="control-btn">Check all</button>
+                        <button type="button" id="clear-all-btn" class="control-btn">Clear all</button>
+                    </div>
+                `);
+                $container.append($controls);
+
+                // 버튼 이벤트 연결
+                $('#check-all-btn').on('click', function(e) {
+                    e.stopPropagation(); // 드롭다운 닫힘 방지
+                    $('#checkboxes input[type="checkbox"]').prop('checked', true);
+                    updateMapAndList();
+                });
+
+                $('#clear-all-btn').on('click', function(e) {
+                    e.stopPropagation();
+                    $('#checkboxes input[type="checkbox"]').prop('checked', false);
+                    updateMapAndList();
+                });
+
+                // 2. 개별 카테고리 체크박스 생성
                 categories.forEach(cat => {
-                    if ($select.find(`option[value="${cat}"]`).length === 0) {
-                        $select.append(`<option value="${cat}">${cat}</option>`);
-                    }
+                    var $label = $(`<label><input type="checkbox" value="${cat}" /> ${cat}</label>`);
+                    
+                    $label.find('input').on('change', function() {
+                        updateMapAndList();
+                    });
+                    
+                    $container.append($label);
                 });
             }
         </script>

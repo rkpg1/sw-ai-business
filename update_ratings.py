@@ -23,7 +23,7 @@ S_BASELINE = 3.0      # (S_baseline) 목표하는 식당의 글로벌 기준점 
 K_PARAM = 10          # (k) 신뢰도 계수 (후기 10개 미만 필터와 동일하게 설정)
 MAX_DAYS = 1095       # (3년) 이보다 오래된 리뷰는 제외
 # -------------------------------------------
-HEADLESS_MODE = False
+HEADLESS_MODE = True
 
 # --- 2. Colab을 위한 Selenium 옵션 ---
 

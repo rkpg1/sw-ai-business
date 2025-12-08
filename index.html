@@ -127,7 +127,11 @@ https://www.tooplate.com/view/2095-level
                                     <h3 class="tm-color-white tm-sidebar-title">Sinchon Top Chinese Rankings</h3>
                                     <p class="tm-color-white tm-margin-b-0 tm-font-light">Relative Score with an average of 3.0</p>
                                 </div>
-                                
+                                <div class="tm-sidebar-pad-2" style="padding-bottom: 10px;">
+                                    <select id="real-category-filter" class="form-control" style="height: 40px; font-size: 0.9rem;">
+                                        <option value="All">All Categories</option>
+                                        </select>
+                                </div>
                                 <div class="tm-sidebar-pad-2" id="restaurant-list-container">
                                 </div>
                             </div>                            
@@ -135,7 +139,7 @@ https://www.tooplate.com/view/2095-level
 
                         <div class="col-sm-12 col-md-12 col-lg-8 col-xl-8 mt-4 mt-lg-0">
                             <div id="map-container" class="tm-bg-white">
-                                <div id="map" style="width:100%; height:540px;"></div>
+                                <div id="map" style="width:100%; height:610px;"></div>
                             </div>
 
                         </div>
@@ -229,20 +233,11 @@ https://www.tooplate.com/view/2095-level
                 }
             }
 
-            function togglePlayPause() {
-                vid = $('.tmVideo').get(0);
-
-                if(vid.paused) {
-                    vid.play();
-                    $('.tm-btn-play').hide();
-                    $('.tm-btn-pause').show();
-                }
-                else {
-                    vid.pause();
-                    $('.tm-btn-play').show();
-                    $('.tm-btn-pause').hide();   
-                }  
-            }
+            // 전역 변수 설정
+            var map;
+            var allRestaurants = []; // 전체 식당 데이터
+            var markers = [];        // 지도에 표시된 마커들
+            var currentOverlay = null; // 현재 열린 인포윈도우
        
             $(document).ready(function(){
 
@@ -267,9 +262,6 @@ https://www.tooplate.com/view/2095-level
                     $('#mainNav').removeClass('show');
                 });
 
-                $('.tm-btn-play').click(function() { togglePlayPause(); });
-                $('.tm-btn-pause').click(function() { togglePlayPause(); });
-
                 $('.tm-current-year').text(new Date().getFullYear());     
 
                 /* --- 2. 카카오 지도 띄우기 --- */
@@ -278,103 +270,38 @@ https://www.tooplate.com/view/2095-level
                 // [중요] 만약 mapContainer가 없으면 에러가 나므로 확인
                 if (mapContainer) {
                     var mapOption = { 
-                        center: new kakao.maps.LatLng(37.5562, 126.9372),
+                        center: new kakao.maps.LatLng(37.5575, 126.9372),
                         level: 3,
                         mapTypeId : kakao.maps.MapTypeId.HYBRID
                     };
     
-                    var map = new kakao.maps.Map(mapContainer, mapOption); // 지도 생성
+                    map = new kakao.maps.Map(mapContainer, mapOption); // 지도 생성
                 } else {
                     console.error("지도를 표시할 div(id='map')를 찾을 수 없습니다.");
                 }
-
-                /* --- 3. 별점 초기화 함수 --- */
-                function initializeStarRatings() {
-                    $('.list-item-rating').each(function() {
-                        const $this = $(this);
-                        const score = $this.data('score'); 
-                        
-                        if (score !== undefined) {
-                            const percentage = (score / 5.0) * 100;
-                            const $foreground = $this.find('.stars-foreground');
-                            $foreground.css('width', percentage + '%');
-
-                            const $listItem = $this.closest('.restaurant-item');
-                            const targetId = $listItem.attr('id'); 
-                            
-                            // const $pin = $('.map-pin[data-target="#' + targetId + '"]');
-
-                            // (주의) 아직 지도 위에 핀을 안 만들었으므로 핀 색상 변경 코드는 에러 방지를 위해 잠시 뺍니다.
-                            if (score === 0) {
-                                $foreground.addClass('is-low-score'); 
-                            } else if (score > 3.5) {
-                                $foreground.addClass('is-high-score');
-                            } else {
-                                $foreground.addClass('is-low-score');
-                            }
-                        }
-                    });
-                }
-
-                /* --- 4. 데이터 불러오기 및 리스트 생성 --- */
+                
+                /* --- 3. 데이터 로드 및 초기화 --- */
                 $.getJSON("restaurants.json", function(data) {
-                    const $listContainer = $('#restaurant-list-container');
-                    
-                    // 리스트 비우기 (중복 방지)
-                    $listContainer.empty();
+                    allRestaurants = data;
 
-                    $.each(data, function(index, restaurant) {
-                        
-                        const listHtml = `
-                            <a href="#" class="media tm-media tm-recommended-item restaurant-item" id="${restaurant.id}">
-                                <img src="${restaurant.imageSrc}" alt="Image">
-                                <div class="media-body tm-media-body tm-bg-gray">
-                                    <div class="list-item-name">${restaurant.name}</div>
-                                    <div class="list-item-category">${restaurant.category}</div>
-                                    <div class="list-item-rating" data-score="${restaurant.score}">
-                                        <span class="rating-score">${restaurant.score}</span>
-                                        <span class="stars-container">
-                                            <span class="stars-background"></span>
-                                            <span class="stars-foreground"></span>
-                                        </span>
-                                        <span class="rating-reviews">(${restaurant.reviews})</span>
-                                    </div>
-                                </div>
-                            </a>
-                        `;
-                        $listContainer.append(listHtml);
-                    });       
+                    // (1) 카테고리 필터 자동 생성
+                    populateCategoryFilter();
 
-                    initializeStarRatings(); 
+                    // (2) 초기 화면 렌더링
+                    updateMapAndList();
+                });
 
-                    // 리스트 클릭 이벤트 (Fake Door)
-                    $('.restaurant-item').on('click', function(e) {
-                        e.preventDefault(); 
-                        const restaurantId = $(this).attr('id');
-                        
-                        var finalData = JSON.stringify({
-                            "id": getUVfromCookie(),
-                            "action": "click", 
-                            "destination": restaurantId,
-                            "food_type": "Chinese",
-                            "time_stamp": getTimeStamp()
-                        });
+                /* --- 4. 이벤트 리스너 등록 --- */
+                
+                // (1) 지도가 움직이거나 줌인/아웃이 '끝났을 때(idle)' 실행
+                kakao.maps.event.addListener(map, 'idle', function() {
+                    updateMapAndList();
+                });
 
-                        $.busyLoadFull("show"); 
-
-                        axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData)
-                            .then(response => {
-                                $.busyLoadFull("hide"); 
-                                $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
-                            })
-                            .catch(error => {
-                                console.error("Submit failed:", error);
-                                $.busyLoadFull("hide"); 
-                                $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
-                            });
-                    });
-
-                }); // <-- $.getJSON 끝 
+                // (2) 카테고리 필터를 변경했을 때 실행
+                $('#real-category-filter').on('change', function() {
+                    updateMapAndList();
+                });
 
                 /* --- 5. 검색 버튼 이벤트 --- */
                 $("#fake-door-form").on("submit", function(e) {
@@ -383,6 +310,164 @@ https://www.tooplate.com/view/2095-level
                     $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
                 });
             });
+
+            /* --- 핵심 로직 함수들 --- */
+
+            // A. 지도 영역과 필터에 맞춰 데이터 갱신
+            function updateMapAndList() {
+                if (!map) return;
+
+                var bounds = map.getBounds();
+                var selectedCategory = $('#real-category-filter').val();
+
+                var visibleRestaurants = allRestaurants.filter(function(r) {
+                    var latlng = new kakao.maps.LatLng(r.lat, r.lng);
+                    var isInside = bounds.contain(latlng);
+                    var isCategoryMatch = (selectedCategory === "All") || (r.category === selectedCategory);
+                    return isInside && isCategoryMatch;
+                });
+
+                // [수정] 정렬 로직 변경
+                // 리뷰 수가 10개 미만이면 점수를 0으로 취급하여 맨 뒤로 보냄
+                visibleRestaurants.sort(function(a, b) {
+                    var scoreA = (a.reviews < 10) ? 0 : a.score;
+                    var scoreB = (b.reviews < 10) ? 0 : b.score;
+                    return scoreB - scoreA; // 내림차순 정렬
+                });
+
+                renderMarkers(visibleRestaurants);
+                renderList(visibleRestaurants);
+            }
+
+            // B. 마커 그리기
+            function renderMarkers(restaurants) {
+                // 기존 마커 지우기
+                for (var i = 0; i < markers.length; i++) {
+                    markers[i].setMap(null);
+                }
+                markers = [];
+
+                restaurants.forEach(function(r) {
+                    var position = new kakao.maps.LatLng(r.lat, r.lng);
+                    
+                    // [수정] 점수/리뷰 수에 따른 마커 이미지 선택
+                    var imageSrc;
+                    if (r.reviews < 10) {
+                        imageSrc = 'img/marker-gray.png'; // 리뷰 부족 (회색)
+                    } else if (r.score >= 3.5) {
+                        imageSrc = 'img/marker-orange.png'; // 고득점 (주황색)
+                    } else {
+                        imageSrc = 'img/marker-yellow.png'; // 일반 (노란색)
+                    }
+
+                    // 마커 이미지의 크기 (아이콘 크기에 맞춰 조절하세요)
+                    var imageSize = new kakao.maps.Size(25, 30); 
+                    var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize);
+
+                    var marker = new kakao.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: r.name,
+                        image: markerImage // 커스텀 이미지 적용
+                    });
+
+                    // 마커 클릭 이벤트 (기존 유지)
+                    kakao.maps.event.addListener(marker, 'click', function() {
+                        var $targetItem = $('#' + r.id);
+                        if ($targetItem.length) {
+                            var container = $('#restaurant-list-container');
+                            var targetScroll = $targetItem.position().top + container.scrollTop() - 160;
+                            
+                            container.animate({ scrollTop: targetScroll }, 500);
+                            $('.restaurant-item').removeClass('active-restaurant');
+                            $targetItem.addClass('active-restaurant');
+                        }
+                    });
+
+                    markers.push(marker);
+                });
+            }
+
+            // C. 리스트 그리기
+            function renderList(restaurants) {
+                var $listContainer = $('#restaurant-list-container');
+                $listContainer.empty();
+
+                if (restaurants.length === 0) {
+                    $listContainer.append('<div class="tm-media-body tm-bg-gray p-3">이 영역에는 해당 카테고리의 식당이 없습니다.</div>');
+                    return;
+                }
+
+                restaurants.forEach(function(r) {
+                    // [수정] 별점 표시 로직 개선
+                    var ratingHtml = '';
+                    
+                    // 리뷰 수 10개 미만인 경우
+                    if (r.reviews < 10) {
+                        ratingHtml = `<span style="color: #999; font-size: 0.9rem;">리뷰 수가 충분하지 않습니다</span>`;
+                    } else {
+                        // 리뷰 수 충분한 경우 별점 표시
+                        var percentage = (r.score / 5.0) * 100;
+                        
+                        // [수정] 3.5점 이상/미만 색상 클래스 적용
+                        var starClass = (r.score >= 3.5) ? 'is-high-score' : 'is-low-score';
+                        if (r.score === 0) starClass = 'is-low-score';
+
+                        ratingHtml = `
+                            <div class="list-item-rating">
+                                <span class="rating-score">${r.score.toFixed(2)}</span>
+                                <span class="stars-container">
+                                    <span class="stars-background"></span>
+                                    <span class="stars-foreground ${starClass}" style="width:${percentage}%"></span>
+                                </span>
+                                <span class="rating-reviews">(${r.reviews})</span>
+                            </div>
+                        `;
+                    }
+
+                    var html = `
+                        <a href="#" class="media tm-media tm-recommended-item restaurant-item" id="${r.id}">
+                            <img src="${r.imageSrc}" alt="${r.name}">
+                            <div class="media-body tm-media-body tm-bg-gray">
+                                <div class="list-item-name">${r.name}</div>
+                                <div class="list-item-category">${r.category}</div>
+                                ${ratingHtml}
+                            </div>
+                        </a>`;
+                    
+                    var $item = $(html);
+                    
+                    // Fake Door: 리스트 클릭 시 팝업
+                    $item.on('click', function(e) {
+                        e.preventDefault();
+                        
+                        var finalData = JSON.stringify({
+                            "id": getUVfromCookie(),
+                            "action": "click_list_item",
+                            "destination": r.id,
+                            "food_type": r.category,
+                            "time_stamp": getTimeStamp()
+                        });
+                        
+                        // axios.get(...) 
+
+                        $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
+                    });
+
+                    $listContainer.append($item);
+                });
+            }
+
+            // D. 카테고리 필터 옵션 자동 생성
+            function populateCategoryFilter() {
+                var categories = new Set();
+                allRestaurants.forEach(r => categories.add(r.category));
+                
+                var $select = $('#real-category-filter');
+                categories.forEach(cat => {
+                    $select.append(`<option value="${cat}">${cat}</option>`);
+                });
+            }
 
         </script>
         <script type="application/javascript">

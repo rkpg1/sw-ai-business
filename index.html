@@ -301,7 +301,7 @@ https://www.tooplate.com/view/2095-level
                 // [중요] 만약 mapContainer가 없으면 에러가 나므로 확인
                 if (mapContainer) {
                     var mapOption = { 
-                        center: new kakao.maps.LatLng(37.5575, 126.9372),
+                        center: new kakao.maps.LatLng(37.5575, 126.937),
                         level: 3,
                         mapTypeId : kakao.maps.MapTypeId.SKYVIEW
                     };
@@ -444,7 +444,11 @@ https://www.tooplate.com/view/2095-level
                     // 인포윈도우 HTML 스타일링
                     var content = `
                         <div style="width:${finalWidth}px; min-height:25px; padding:5px 5px 5px 5px; background:white; border-radius:3px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-weight:500; font-size:12px; color:black;">${koreanName}</span>
+                            <a href="https://place.map.kakao.com/${r.kakao_id}" target="_blank" class="info-window-link" 
+                               data-id="${r.id}" data-category="${r.category}"
+                               style="font-weight:500; font-size:12px; color:black;">
+                               ${koreanName}
+                            </a>
                             <span style="font-weight:bold; color:${colorCode}; font-size:12px;">
                                 ${r.score.toFixed(2)} <span style="font-size:14px; vertical-align: bottom;">★</span>
                             </span>
@@ -464,6 +468,14 @@ https://www.tooplate.com/view/2095-level
                         }
                         infowindow.open(map, marker);
                         currentOverlay = infowindow;
+                        var finalData = JSON.stringify({
+                            "id": getUVfromCookie(),
+                            "action": "click_marker",
+                            "destination": r.id,
+                            "food_type": r.category,
+                            "time_stamp": getTimeStamp()
+                        });
+                        axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData);
                         var $targetItem = $('#' + r.id);
                         if ($targetItem.length) {
                             var container = $('#restaurant-list-container');
@@ -489,7 +501,7 @@ https://www.tooplate.com/view/2095-level
                     return;
                 }
 
-                restaurants.forEach(function(r) {
+                restaurants.forEach(function(r, index) {
                     var ratingHtml = '';
                     if (r.reviews < 10) {
                         ratingHtml = `<span style="color: #999; font-size: 0.9rem;">Not enough reviews</span>`;
@@ -521,7 +533,7 @@ https://www.tooplate.com/view/2095-level
                     }
 
                     var html = `
-                        <a href="#" class="media tm-media tm-recommended-item restaurant-item" id="${r.id}">
+                        <a href="#" target="_blank" class="media tm-media tm-recommended-item restaurant-item" id="${r.id}">
                             <img src="${r.imageSrc}" alt="${r.name}">
                             <div class="media-body tm-media-body tm-bg-gray">
                                 <div class="list-item-name">${displayName}</div>
@@ -542,7 +554,16 @@ https://www.tooplate.com/view/2095-level
                             "food_type": r.category,
                             "time_stamp": getTimeStamp()
                         });
-                        $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
+                        axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData);
+
+                        if ($(this).hasClass('active-restaurant')) {
+                            $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
+                            window.open(`https://place.map.kakao.com/${r.kakao_id}`, '_blank');
+                        } else {
+                            if (markers[index]) {
+                                kakao.maps.event.trigger(markers[index], 'click');
+                            }
+                        }
                     });
 
                     $listContainer.append($item);

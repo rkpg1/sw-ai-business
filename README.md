@@ -75,14 +75,14 @@ index.html 파일을 직접 더블 클릭해서 열면 브라우저 보안 정�
 
 ## 프로젝트 구조 (Project Structure)
 
-project/
-├── index.html             # 메인 프론트엔드 코드 (지도, 리스트, 필터 로직 포함)
-├── css/                   # 스타일시트 (tooplate-style.css 등)
-├── js/                    # 외부 라이브러리 (Bootstrap, Slick 등)
-├── img/                   # 식당 이미지 및 마커 아이콘 저장소
-├── restaurants.json       # [Data] 식당 정보 및 별점 데이터베이스
-├── list.csv               # [Source] 크롤링 대상 식당 목록 원본
-├── csv_to_json.py         # [Script] CSV -> JSON 변환 및 좌표 추출
-├── update_ratings.py      # [Script] 리뷰 크롤링, 별점 알고리즘 계산, 이미지 처리
-├── requirements.txt       # Python 의존성 목록
+project/    
+├── index.html             # 메인 프론트엔드 코드 (지도, 리스트, 필터 로직 포함)    
+├── css/                   # 스타일시트 (tooplate-style.css 등)    
+├── js/                    # 외부 라이브러리 (Bootstrap, Slick 등)    
+├── img/                   # 식당 이미지 및 마커 아이콘 저장소    
+├── restaurants.json       # [Data] 식당 정보 및 별점 데이터베이스    
+├── list.csv               # [Source] 크롤링 대상 식당 목록 원본    
+├── csv_to_json.py         # [Script] CSV -> JSON 변환 및 좌표 추출    
+├── update_ratings.py      # [Script] 리뷰 크롤링, 별점 알고리즘 계산, 이미지 처리    
+├── requirements.txt       # Python 의존성 목록    
 └── README.md              # 프로젝트 설명서

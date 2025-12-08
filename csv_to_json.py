@@ -90,7 +90,7 @@ def main():
     with open('restaurants.json', 'w', encoding='utf-8') as f:
         json.dump(restaurants, f, indent=4, ensure_ascii=False)
 
-    print(f"\n✅ 'restaurants.json' 파일 생성이 완료되었습니다! (총 {len(restaurants)}개)")
+    print(f"\n'restaurants.json' 파일 생성이 완료되었습니다! (총 {len(restaurants)}개)")
 
 if __name__ == "__main__":
     main()

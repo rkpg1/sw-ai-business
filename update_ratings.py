@@ -1,11 +1,19 @@
 import json
 import sys
 import time
+import requests
+import os
+import re
+from io import BytesIO
 import math # log10 사용
 from datetime import datetime # 날짜 계산용
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
@@ -15,12 +23,14 @@ S_BASELINE = 3.0      # (S_baseline) 목표하는 식당의 글로벌 기준점 
 K_PARAM = 10          # (k) 신뢰도 계수 (후기 10개 미만 필터와 동일하게 설정)
 MAX_DAYS = 1095       # (3년) 이보다 오래된 리뷰는 제외
 # -------------------------------------------
+HEADLESS_MODE = False
 
 # --- 2. Colab을 위한 Selenium 옵션 ---
 
 def get_driver():
     options = Options()
-    options.add_argument('--headless')
+    if HEADLESS_MODE:
+        options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36")
@@ -30,13 +40,69 @@ def get_driver():
     return driver
 # -------------------------------------------
 
-def calculate_rating(driver, kakao_id):
+def process_image(image_url, save_path):
+    try:
+        # 1. 이미지 다운로드 (http: 프로토콜 추가)
+        if image_url.startswith("//"):
+            image_url = "https:" + image_url
+            
+        response = requests.get(image_url, timeout=10)
+        if response.status_code != 200:
+            return False
+
+        img = Image.open(BytesIO(response.content))
+
+        # 2. 1:1 비율로 중앙 크롭 (Center Crop)
+        width, height = img.size
+        new_size = min(width, height)
+
+        left = (width - new_size) / 2
+        top = (height - new_size) / 2
+        right = (width + new_size) / 2
+        bottom = (height + new_size) / 2
+
+        img_cropped = img.crop((left, top, right, bottom))
+
+        # 3. 리사이즈 및 RGB 변환
+        img_resized = img_cropped.resize((400, 400), Image.LANCZOS)
+        if img_resized.mode != 'RGB':
+            img_resized = img_resized.convert('RGB')
+
+        # 4. 저장
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
+            
+        img_resized.save(save_path, "JPEG", quality=85)
+        return True
+
+    except Exception as e:
+        print(f"    (이미지 처리 실패) {e}")
+        return False
+
+def calculate_rating(driver, kakao_id, restaurant_id):
     # 3. 페이지 접속 및 스크롤
-    url = "https://place.map.kakao.com/{kakao_id}#review"
+    url = f"https://place.map.kakao.com/{kakao_id}#review"
     driver.get(url)
 
     print("페이지 접속")
     time.sleep(2)
+
+    new_image_path = None
+    try:        
+        # 배경 이미지 URL 추출
+        WebDriverWait(driver, 3).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".img-thumb"))
+        )
+        bg_present = driver.find_element(By.CSS_SELECTOR, ".img-thumb")
+        image_url = bg_present.get_attribute("src")
+        filename = f"img/store_{restaurant_id}.jpg"
+        if process_image(image_url, filename):
+            print(f"    -> 대표 이미지 저장 완료: {filename}")
+            new_image_path = filename
+        else:
+            print("    -> 대표 이미지 저장 실패")
+    except Exception:
+        print(f"    -> 대표 이미지를 찾을 수 없습니다. ({e})")
 
     last_height = driver.execute_script("return document.body.scrollHeight")
     print("스크롤 시작")
@@ -173,11 +239,11 @@ def calculate_rating(driver, kakao_id):
             print("\n계산에 사용할 수 있는 유효한 리뷰가 없습니다.")
             print(" (필터 기준: 3년 이내 작성, 리뷰어 후기 10개 이상)")
 
-        return final_score, valid_review_count
+        return final_score, valid_review_count, new_image_path
 
     else:
         print("리뷰 목록('ul.list_review')을 찾을 수 없습니다.")
-        return 0.0, 0
+        return 0.0, 0, new_image_path
     
 def main():
     json_path = 'restaurants.json'
@@ -195,11 +261,13 @@ def main():
         for restaurant in data:
             if 'kakao_id' in restaurant and restaurant['kakao_id']:
                 print(f"\n[{restaurant['name']}] 업데이트 시작...")
-                score, reviews = calculate_rating(driver, restaurant['kakao_id'])
+                score, reviews, new_img = calculate_rating(driver, restaurant['kakao_id'], restaurant['id'])
                 
                 # 결과 업데이트
                 restaurant['score'] = score
                 restaurant['reviews'] = reviews
+                if new_img:
+                    restaurant['imageSrc'] = new_img
             else:
                 print(f"\n[{restaurant.get('name')}] kakao_id가 없어 건너뜁니다.")
 

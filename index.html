@@ -186,13 +186,8 @@ https://www.tooplate.com/view/2095-level
                                         </div>
                                         
                                         <div class="form-group tm-form-element">                                            
-                                            <select name="food_type" class="form-control tm-select" id="food_type">
-                                                <option value="">All Food Types</option>
-                                                <option value="korean">Korean</option>
-                                                <option value="japanese">Japanese</option>
-                                                <option value="chinese">Chinese</option>
-                                                <option value="western">Western</option>
-                                                <option value="cafe">Cafe / Dessert</option>
+                                            <select name="category" class="form-control tm-select" id="top-category-select">
+                                                <option value="All">All Categories</option>
                                             </select>
                                             <i class="fa fa-cutlery fa-2x tm-form-element-icon"></i>
                                         </div>
@@ -392,8 +387,30 @@ https://www.tooplate.com/view/2095-level
                     // (1) 카테고리 필터 자동 생성
                     populateCategoryFilter();
 
-                    // (2) 초기 화면 렌더링
-                    updateMapAndList();
+                    // (2) URL 파라미터 확인 및 필터 자동 적용 로직
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var categoryParam = urlParams.get('category');
+
+                    if (categoryParam && categoryParam !== "All") {
+                        // 1. 상단 드롭다운 값 유지
+                        $('#top-category-select').val(categoryParam);
+
+                        // 2. 하단 멀티 필터에서 해당 카테고리 체크
+                        $('#checkboxes input[type="checkbox"]').each(function() {
+                            if ($(this).val() === categoryParam) {
+                                $(this).prop('checked', true);
+                            } else {
+                                $(this).prop('checked', false);
+                            }
+                        });
+                        
+                        // 3. 필터가 적용되었으므로 목록 갱신 함수 호출
+                        updateMapAndList();
+                        
+                    } else {
+                        // 파라미터가 없거나 All이면 전체 리스트 표시
+                        updateMapAndList();
+                    }
                 });
 
                 /* --- 4. 이벤트 리스너 등록 --- */
@@ -443,13 +460,6 @@ https://www.tooplate.com/view/2095-level
                         document.getElementById("checkboxes").style.display = "none";
                         expanded = false;
                     }
-                });
-
-                /* --- 5. 검색 버튼 이벤트 --- */
-                $("#fake-door-form").on("submit", function(e) {
-                    e.preventDefault();
-                    // ... (기존 검색 코드 유지) ...
-                    $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
                 });
             });
 
@@ -687,7 +697,6 @@ https://www.tooplate.com/view/2095-level
                         axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData);
 
                         if ($(this).hasClass('active-restaurant')) {
-                            $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
                             window.open(`https://place.map.kakao.com/${r.kakao_id}`, '_blank');
                         } else {
                             if (markers[index]) {
@@ -724,11 +733,44 @@ https://www.tooplate.com/view/2095-level
                     return $btn;
                 }
 
-                // 페이지 번호 버튼 (단순하게 전체 표시)
-                for (var i = 1; i <= totalPages; i++) {
-                    $pagination.append(createBtn(i, i, i === currentPage));
+                function createEllipsis() {
+                    return $('<span style="margin: 0 4px; color: #999; font-size: 12px;">...</span>');
                 }
 
+                // 페이지 번호 표시 로직 (최대 7개 숫자까지만 표시)
+                if (totalPages <= 7) {
+                    // 페이지가 7개 이하면 다 보여줌
+                    for (var i = 1; i <= totalPages; i++) {
+                        $pagination.append(createBtn(i, i, i === currentPage));
+                    }
+                } else {
+                    // 1. 항상 첫 페이지 표시
+                    $pagination.append(createBtn(1, 1, 1 === currentPage));
+
+                    if (currentPage <= 4) {
+                        // [Case A] 앞쪽에 있을 때: 1 2 3 4 5 ... 20
+                        for (var i = 2; i <= 5; i++) {
+                            $pagination.append(createBtn(i, i, i === currentPage));
+                        }
+                        $pagination.append(createEllipsis());
+                    } else if (currentPage >= totalPages - 3) {
+                        // [Case B] 뒤쪽에 있을 때: 1 ... 16 17 18 19 20
+                        $pagination.append(createEllipsis());
+                        for (var i = totalPages - 4; i < totalPages; i++) {
+                            $pagination.append(createBtn(i, i, i === currentPage));
+                        }
+                    } else {
+                        // [Case C] 중간에 있을 때: 1 ... 9 10 11 ... 20
+                        $pagination.append(createEllipsis());
+                        for (var i = currentPage - 1; i <= currentPage + 1; i++) {
+                            $pagination.append(createBtn(i, i, i === currentPage));
+                        }
+                        $pagination.append(createEllipsis());
+                    }
+
+                    // 2. 항상 마지막 페이지 표시
+                    $pagination.append(createBtn(totalPages, totalPages, totalPages === currentPage));
+                }
             }
 
             // F. 카테고리 필터 자동 채우기
@@ -770,6 +812,13 @@ https://www.tooplate.com/view/2095-level
                     });
                     
                     $container.append($label);
+                });
+
+                var $topSelect = $('#top-category-select');
+                $topSelect.find('option:not(:first)').remove(); // "All Categories" 빼고 초기화
+
+                categories.forEach(cat => {
+                    $topSelect.append(`<option value="${cat}">${cat}</option>`);
                 });
             }
         </script>
@@ -914,32 +963,24 @@ https://www.tooplate.com/view/2095-level
                     e.preventDefault(); // 페이지 새로고침 방지
 
                     // 입력된 값 가져오기
-                    const destination = $("#inputDestination").val();
-                    const foodType = $("#food_type").val();
+                    var destination = $("#inputDestination").val();
+                    var selectedCategory = $('#top-category-select').val();
 
                     // DB로 보낼 데이터 준비
                     var finalData = JSON.stringify({
                         "id": getUVfromCookie(),
                         "action": "search", // 검색 시도
                         "destination": destination,
-                        "food_type": foodType,
+                        "food_type": selectedCategory,
                         "time_stamp": getTimeStamp()
                     });
 
                     $.busyLoadFull("show"); // 로딩 시작
 
                     axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData)
-                        .then(response => {
-                            $.busyLoadFull("hide"); // 로딩 숨기기
-                            // 새 팝업 띄우기
-                            $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" }); 
-                        })
-                        .catch(error => {
-                            console.error("Search submit failed:", error);
-                            $.busyLoadFull("hide"); // 실패해도 로딩 숨기기
-                            // 실패해도 사용자에게는 팝업을 띄워줌
-                            $.fn.simplePopup({ type: "html", htmlSelector: "#fake-door-popup" });
-                        });
+
+                    var newUrl = window.location.pathname + "?category=" + encodeURIComponent(selectedCategory) + "#tm-section-4";
+                    window.location.href = newUrl;
                 });
 
             })

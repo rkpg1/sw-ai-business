@@ -921,7 +921,7 @@ https://www.tooplate.com/view/2095-level
                             "device": mobile
                         });
 
-                        axios.get(addrScript + '?action=insert&table=visitors&data=' + visitorData)
+                        axios.get(addrScript + '?action=insert&table=visitors&data=' + encodeURIComponent(visitorData))
                             .then(function(res) { console.log("Visitor Logged"); })
                             .catch(function(err) { console.error("Visitor Error:", err); });
                     } catch (e) {

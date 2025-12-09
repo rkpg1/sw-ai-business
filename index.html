@@ -248,7 +248,7 @@ https://www.tooplate.com/view/2095-level
                     <div class="row">
                         <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8 col-xl-7 mt-3 mt-md-0 ml-auto mr-auto">
                             <div class="tm-bg-white tm-p-4">
-                                <form action="index.html" method="post" class="contact-form" novalidate>
+                                <form action="#" method="post" class="contact-form" novalidate>
 
                                     <p class="contact-text">Please leave your email address, and we will notify you when the service launches.</p>
 
@@ -262,7 +262,7 @@ https://www.tooplate.com/view/2095-level
                                         <textarea id="contact_message" name="contact_message" class="form-control" rows="5" placeholder="Message"></textarea>
                                     </div>
 
-                                    <button type="submit" class="btn btn-primary tm-btn-primary">Send Message Now</button>
+                                    <button type="button" id="contact-submit-btn" class="btn btn-primary tm-btn-primary">Send Message Now</button>
                                 </form>
                             </div>                            
                         </div>
@@ -822,6 +822,19 @@ https://www.tooplate.com/view/2095-level
                 });
             }
         </script>
+
+        <script type="application/javascript">
+            var ip = "null";
+            function getIP(json) {
+                console.log(json);
+                try {
+                    ip = json.ip;
+                } catch (e) {
+                    ip = 'unknown';
+                }
+                return;
+            }
+        </script>
         <script type="application/javascript" src="https://jsonip.com?format=jsonp&callback=getIP"></script>
 
         <script>
@@ -892,98 +905,77 @@ https://www.tooplate.com/view/2095-level
 
             addrScript = "https://script.google.com/macros/s/AKfycbz36e-aBB8UnS61lP1yQThG-g9gTO71_C67l_hF1XM0dwmKWlHh4D0-vaDssFDOlXSI/exec"
 
-            var data = JSON.stringify(
-					               {"id": getUVfromCookie(),
-							"landingUrl": window.location.href, 
-							"ip": ip, 
-							"referer": document.referrer,
-							"time_stamp": getTimeStamp(), 
-							"utm": utm,
-							"device": mobile}
-							);
-
             $(document).ready(function () {
-                axios.get(addrScript+'?action=insert&table=visitors&data='+data)
-				    .then(response => {
-							console.log(JSON.stringify(response));
-						})
-						.catch(error => {
-							if (error.response) {
-								// 서버가 2xx 범위를 벗어난 상태 코드로 응답한 경우
-								console.log(error.response.data);
-								console.log(error.response.status);
-								console.log(error.response.headers);
-							} else if (error.request) {
-								// 요청이 전송되었지만 응답을 받지 못한 경우
-								console.log(error.request);
-							} else {
-								// 요청 설정 중에 오류가 발생한 경우
-								console.log('Error', error.message);
-							}
-							console.log(error.config);
-						});
-                $(".contact-form").on("submit", function (e) {
-					const email = $("#contact_email").val();
-					const advice = $("#contact_message").val();
-                    e.preventDefault()
-					function validateEmail(email) {
-					    var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
-					    return re.test(email);
-					}
-		    
-					if (email == '' || !validateEmail(email)) {
-					    alert("The email address is invalid.");
-					    return;
-					}
+                
+                /* --- 1. Visitor 자동 기록 --- */
+                // 페이지가 준비되면 즉시 실행
+                setTimeout(function() {
+                    try {
+                        var visitorData = JSON.stringify({
+                            "id": getUVfromCookie(), 
+                            "landingUrl": window.location.href, 
+                            "ip": (typeof ip !== 'undefined') ? ip : 'unknown', 
+                            "referer": document.referrer, 
+                            "time_stamp": getTimeStamp(), 
+                            "utm": utm, 
+                            "device": mobile
+                        });
 
-                    if (advice == '') {
-                        alert("Please leave your feedback about the service.");
-                        return;
+                        axios.get(addrScript + '?action=insert&table=visitors&data=' + visitorData)
+                            .then(function(res) { console.log("Visitor Logged"); })
+                            .catch(function(err) { console.error("Visitor Error:", err); });
+                    } catch (e) {
+                        console.error("Visitor Logic Error:", e);
                     }
-		    
-					var finalData = JSON.stringify({
-					    "id": getUVfromCookie(),
-					    "email": email,
-					    "advice": advice
-					})
+                }, 500); // 0.5초 딜레이로 안정성 확보
 
-                    $.busyLoadFull("show");
 
-					axios.get(addrScript + '?action=insert&table=tab_final&data=' + finalData)
-					    .then(response => {
-						console.log(response.data.data);
-						alert(JSON.stringify(response));
-						$('#contact_email').val('');
-						$('#contact_message').val('');
-                        $.busyLoadFull("hide");
-                        $.fn.simplePopup({ type: "html", htmlSelector: "#popup" });
-					})
-				});
-                $("#fake-door-form").on("submit", function(e) {
-                    e.preventDefault(); // 페이지 새로고침 방지
-
-                    // 입력된 값 가져오기
-                    var destination = $("#inputDestination").val();
-                    var selectedCategory = $('#top-category-select').val();
-
-                    // DB로 보낼 데이터 준비
+                /* --- 2. Contact Us 전송 (버튼 클릭 방식) --- */
+                // 폼 제출(submit)이 아니라 버튼 클릭(click) 이벤트로 변경하여 405 에러 원천 차단
+                $("#contact-submit-btn").on("click", function () {
+                    
+                    const email = $("#contact_email").val();
+                    const advice = $("#contact_message").val();
+            
+                    function validateEmail(email) {
+                        var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+                        return re.test(email);
+                    }
+            
+                    // 유효성 검사
+                    if (email == '' || !validateEmail(email)) {
+                        alert("The email address is invalid."); 
+                        return; 
+                    }
+                    if (advice == '') {
+                        alert("Please leave your feedback about the service."); 
+                        return; 
+                    }
+            
+                    // 데이터 전송
                     var finalData = JSON.stringify({
-                        "id": getUVfromCookie(),
-                        "action": "search", // 검색 시도
-                        "destination": destination,
-                        "food_type": selectedCategory,
-                        "time_stamp": getTimeStamp()
+                        "id": getUVfromCookie(), 
+                        "email": email, 
+                        "advice": advice
                     });
 
-                    $.busyLoadFull("show"); // 로딩 시작
-
-                    axios.get(addrScript + '?action=insert&table=tab_active&data=' + finalData)
-
-                    var newUrl = window.location.pathname + "?category=" + encodeURIComponent(selectedCategory) + "#tm-section-4";
-                    window.location.href = newUrl;
+                    $.busyLoadFull("show");
+                    
+                    axios.get(addrScript + '?action=insert&table=tab_final&data=' + finalData)
+                        .then(function(response) {
+                            alert("Thank you for your feedback!"); 
+                            $('#contact_email').val(''); 
+                            $('#contact_message').val('');
+                            $.busyLoadFull("hide");
+                            $.fn.simplePopup({ type: "html", htmlSelector: "#popup" });
+                        })
+                        .catch(function(error) {
+                            console.error(error);
+                            $.busyLoadFull("hide");
+                            alert("An error occurred. Please try again.");
+                        });
                 });
-
-            })
+            });
 
         </script>
 

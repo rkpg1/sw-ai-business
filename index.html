@@ -729,6 +729,8 @@ https://www.tooplate.com/view/2095-level
                         }
                         currentPage = targetPage;
                         renderCurrentPage(); // 페이지 변경 후 다시 렌더링
+
+                        $('#restaurant-list-container').scrollTop(0);
                     });
                     return $btn;
                 }
